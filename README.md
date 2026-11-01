@@ -1,6 +1,19 @@
-# Screen Grab
+<h1 align="center">◈ Screen Grab</h1>
 
-Eine kleine Windows-Desktop-App zum Aufnehmen und direkten Hochladen von Screenshots zu [ImgBB](https://imgbb.com/). Zusätzlich können vorhandene Bilddateien hochgeladen werden. Nach dem Upload wird der Link automatisch in der Verlaufsliste angezeigt und kann mit einem Klick kopiert und geöffnet werden.
+<p align="center">
+  <strong>Capture. Upload. Share.</strong><br>
+  Screenshots in Sekunden vom Bildschirm zum fertigen Share-Link.
+</p>
+
+<p align="center">
+  <a href="https://github.com/repository-owner/Screen-Grab">
+    <img src="https://img.shields.io/badge/status-active-00F5A0?style=for-the-badge" alt="Status: active">
+  </a>
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/platform-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+</p>
+
+Screen Grab ist eine fokussierte Windows-Desktop-App zum Aufnehmen und direkten Hochladen von Screenshots zu [ImgBB](https://imgbb.com/). Die Oberfläche ist auf schnelles Arbeiten ausgelegt: Shortcut drücken, Aufnahme machen, Link kopieren.
 
 ## Funktionen
 
@@ -9,6 +22,9 @@ Eine kleine Windows-Desktop-App zum Aufnehmen und direkten Hochladen von Screens
 - Nicht blockierende Uploads: Die Oberfläche bleibt während des Uploads bedienbar
 - Fortschrittsanzeige und verständliche Fehlermeldungen
 - Klickbarer Upload-Verlauf mit automatischem Kopieren des Links
+- Persistenter Verlauf mit Copy- und Open-Aktionen
+- Globaler App-Shortcut Ctrl + Shift + S
+- Neon-inspirierte Dark-UI mit API-Key-Status und Upload-Feedback
 - Temporäre Screenshot-Dateien werden nach dem Upload automatisch entfernt
 - API-Key bleibt außerhalb des Quellcodes
 
@@ -63,6 +79,24 @@ python screenshot_uploader_gui.py
 
 Danach kann ein Screenshot aufgenommen oder eine lokale Bilddatei ausgewählt werden. Der erzeugte Link erscheint anschließend im Bereich `HISTORY`.
 
+## Shortcuts
+
+| Shortcut | Aktion |
+| --- | --- |
+| Ctrl + Shift + S | Vollbild aufnehmen und hochladen |
+
+## Ablauf
+
+~~~text
+Shortcut oder Button
+        ↓
+Vollbildaufnahme / lokale Datei
+        ↓
+Upload zu ImgBB
+        ↓
+Link in Zwischenablage + Verlauf
+~~~
+
 ## Fehlerbehebung
 
 ### `Kein ImgBB API-Key gefunden`
@@ -90,6 +124,8 @@ Screen-Grab/
 ├── .gitignore                  # Lokale und temporäre Dateien
 └── README.md                   # Projektdokumentation
 ~~~
+
+Der Upload-Verlauf wird lokal unter %APPDATA%\ScreenGrab\history.json gespeichert und verlässt den Rechner nicht.
 
 ## Sicherheit
 

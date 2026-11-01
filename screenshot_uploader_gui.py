@@ -23,6 +23,7 @@ REQUEST_TIMEOUT_SECONDS = 30
 MAX_HISTORY_ITEMS = 25
 APP_DATA_DIR = Path(os.environ.get("APPDATA") or Path.home()) / "ScreenGrab"
 HISTORY_FILE = APP_DATA_DIR / "history.json"
+CONFIG_FILE = APP_DATA_DIR / "config.json"
 DEFAULT_CAPTURE_DELAY = 0
 
 COLORS = {
@@ -40,8 +41,59 @@ COLORS = {
 
 
 def get_imgbb_api_key():
-    """Read the API key outside the source code and at call time."""
-    return os.environ.get("IMGBB_API_KEY", "").strip()
+    """Read the API key from the app session, environment, or local config."""
+    session_key = globals().get("runtime_api_key", "").strip()
+    if session_key:
+        return session_key
+
+    environment_key = os.environ.get("IMGBB_API_KEY", "").strip()
+    if environment_key:
+        return environment_key
+
+    try:
+        config = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        return str(config.get("imgbb_api_key", "")).strip()
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return ""
+
+
+def save_api_key():
+    value = api_key_entry.get().strip()
+    if not value:
+        set_status("ENTER AN API KEY FIRST", COLORS["red"])
+        return
+
+    try:
+        APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        CONFIG_FILE.write_text(
+            json.dumps({"imgbb_api_key": value}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        messagebox.showerror("API-Key konnte nicht gespeichert werden", str(exc))
+        return
+
+    global runtime_api_key
+    runtime_api_key = value
+    update_key_status()
+    set_status("API KEY SAVED LOCALLY", COLORS["green"])
+
+
+def clear_api_key():
+    global runtime_api_key
+    runtime_api_key = ""
+    api_key_entry.delete(0, "end")
+    try:
+        CONFIG_FILE.unlink(missing_ok=True)
+    except OSError as exc:
+        messagebox.showerror("API-Key konnte nicht gelöscht werden", str(exc))
+        return
+    update_key_status()
+    set_status("API KEY CLEARED", COLORS["muted"])
+
+
+def toggle_api_key_visibility():
+    api_key_entry.configure(show="" if show_api_key_var.get() else "•")
 
 
 def get_monitor_options():
@@ -602,6 +654,72 @@ ctk.CTkSwitch(
     font=ctk.CTkFont(size=11, weight="bold"),
 ).pack(side="left", padx=(12, 16))
 
+api_bar = ctk.CTkFrame(
+    shell,
+    fg_color=COLORS["surface"],
+    border_width=1,
+    border_color=COLORS["border"],
+    corner_radius=14,
+)
+api_bar.pack(fill="x", pady=(0, 18))
+
+ctk.CTkLabel(
+    api_bar,
+    text="IMGBB API KEY",
+    font=ctk.CTkFont(size=11, weight="bold"),
+    text_color=COLORS["muted"],
+).pack(side="left", padx=(16, 12), pady=12)
+
+api_key_entry = ctk.CTkEntry(
+    api_bar,
+    placeholder_text="Paste your ImgBB API key here",
+    show="•",
+    height=32,
+    corner_radius=8,
+    fg_color=COLORS["surface_light"],
+    border_color=COLORS["border"],
+    text_color=COLORS["text"],
+)
+api_key_entry.pack(side="left", fill="x", expand=True, padx=5)
+
+show_api_key_var = BooleanVar(value=False)
+ctk.CTkCheckBox(
+    api_bar,
+    text="SHOW",
+    variable=show_api_key_var,
+    command=toggle_api_key_visibility,
+    width=58,
+    font=ctk.CTkFont(size=10, weight="bold"),
+    text_color=COLORS["muted"],
+    fg_color=COLORS["green_dark"],
+    hover_color="#0D8F68",
+).pack(side="left", padx=5)
+
+ctk.CTkButton(
+    api_bar,
+    text="SAVE",
+    width=58,
+    height=32,
+    corner_radius=8,
+    fg_color=COLORS["green_dark"],
+    hover_color="#0D8F68",
+    font=ctk.CTkFont(size=10, weight="bold"),
+    command=save_api_key,
+).pack(side="left", padx=3)
+
+ctk.CTkButton(
+    api_bar,
+    text="CLEAR",
+    width=58,
+    height=32,
+    corner_radius=8,
+    fg_color="transparent",
+    hover_color="#341622",
+    text_color=COLORS["red"],
+    font=ctk.CTkFont(size=10, weight="bold"),
+    command=clear_api_key,
+).pack(side="left", padx=(3, 12))
+
 status_card = ctk.CTkFrame(
     shell,
     fg_color=COLORS["surface"],
@@ -695,6 +813,10 @@ footer.pack(pady=(12, 0))
 
 history_entries = load_history()
 upload_in_progress = False
+runtime_api_key = ""
+stored_api_key = get_imgbb_api_key()
+if stored_api_key:
+    api_key_entry.insert(0, stored_api_key)
 update_key_status()
 render_history()
 app.mainloop()

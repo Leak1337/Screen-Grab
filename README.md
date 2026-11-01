@@ -28,6 +28,7 @@ Screen Grab ist eine fokussierte Windows-Desktop-App zum Aufnehmen und direkten 
 - Aufnahmeverzögerung für vorbereitete Screenshots
 - Optionales automatisches Kopieren des fertigen Links
 - Einzelne Verlaufseinträge löschen oder den kompletten Verlauf als JSON exportieren
+- API-Key direkt in der App eingeben, anzeigen, speichern oder löschen
 - Neon-inspirierte Dark-UI mit API-Key-Status und Upload-Feedback
 - Temporäre Screenshot-Dateien werden nach dem Upload automatisch entfernt
 - API-Key bleibt außerhalb des Quellcodes
@@ -54,6 +55,8 @@ python -m pip install -r requirements.txt
 ~~~
 
 ## API-Key konfigurieren
+
+Am einfachsten: API-Key direkt im Feld IMGBB API KEY einfügen, optional mit SHOW prüfen und mit SAVE lokal speichern. CLEAR entfernt den lokal gespeicherten Key wieder.
 
 Der API-Key wird aus der Umgebungsvariable `IMGBB_API_KEY` gelesen und nicht im Repository gespeichert.
 
@@ -131,7 +134,7 @@ Screen-Grab/
 └── README.md                   # Projektdokumentation
 ~~~
 
-Der Upload-Verlauf wird lokal unter %APPDATA%\ScreenGrab\history.json gespeichert und verlässt den Rechner nicht.
+Der Upload-Verlauf wird lokal unter %APPDATA%\ScreenGrab\history.json gespeichert und verlässt den Rechner nicht. Der lokal gespeicherte API-Key liegt unter %APPDATA%\ScreenGrab\config.json und wird niemals ins Repository geschrieben.
 
 ## Sicherheit
 

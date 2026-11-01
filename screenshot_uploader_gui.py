@@ -12,7 +12,7 @@ import customtkinter as ctk
 import mss
 import pyperclip
 import requests
-from tkinter import filedialog, messagebox
+from tkinter import BooleanVar, StringVar, filedialog, messagebox, simpledialog
 
 
 ctk.set_appearance_mode("Dark")
@@ -23,6 +23,7 @@ REQUEST_TIMEOUT_SECONDS = 30
 MAX_HISTORY_ITEMS = 25
 APP_DATA_DIR = Path(os.environ.get("APPDATA") or Path.home()) / "ScreenGrab"
 HISTORY_FILE = APP_DATA_DIR / "history.json"
+DEFAULT_CAPTURE_DELAY = 0
 
 COLORS = {
     "background": "#070A0F",
@@ -41,6 +42,17 @@ COLORS = {
 def get_imgbb_api_key():
     """Read the API key outside the source code and at call time."""
     return os.environ.get("IMGBB_API_KEY", "").strip()
+
+
+def get_monitor_options():
+    options = {"All screens": -1}
+    try:
+        with mss.MSS() as screen:
+            for index in range(1, len(screen.monitors)):
+                options[f"Monitor {index}"] = index
+    except Exception:
+        pass
+    return options
 
 
 def upload_to_imgbb(image_path):
@@ -67,19 +79,19 @@ def upload_to_imgbb(image_path):
     return image_url
 
 
-def take_screenshot():
+def take_screenshot(monitor_index=-1, delay_seconds=0):
     app.withdraw()
     app.update_idletasks()
-    time.sleep(0.25)
+    time.sleep(max(0, delay_seconds))
 
     try:
-        with mss.mss() as screen:
+        with mss.MSS() as screen:
             filename = tempfile.NamedTemporaryFile(
                 prefix="screenshot_uploader_",
                 suffix=".png",
                 delete=False,
             ).name
-            screen.shot(mon=-1, output=filename)
+            screen.shot(mon=monitor_index, output=filename)
             return filename
     finally:
         app.deiconify()
@@ -220,6 +232,19 @@ def render_history():
             command=lambda url=entry["url"]: open_link(url),
         ).pack(side="left", padx=3)
 
+        ctk.CTkButton(
+            action_frame,
+            text="×",
+            width=30,
+            height=30,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color="#341622",
+            text_color=COLORS["red"],
+            font=ctk.CTkFont(size=16, weight="bold"),
+            command=lambda item_index=index: delete_history_item(item_index),
+        ).pack(side="left", padx=(3, 0))
+
 
 def add_to_history(url):
     history_entries.insert(
@@ -247,6 +272,41 @@ def clear_history():
     save_history()
     render_history()
     set_status("HISTORY CLEARED", COLORS["green"])
+
+
+def delete_history_item(index):
+    if not 0 <= index < len(history_entries):
+        return
+    history_entries.pop(index)
+    save_history()
+    render_history()
+    set_status("HISTORY ITEM REMOVED", COLORS["green"])
+
+
+def export_history():
+    if not history_entries:
+        set_status("NOTHING TO EXPORT", COLORS["muted"])
+        return
+
+    export_path = filedialog.asksaveasfilename(
+        title="Upload-Verlauf exportieren",
+        defaultextension=".json",
+        filetypes=[("JSON-Datei", "*.json")],
+        initialfile="screen-grab-history.json",
+    )
+    if not export_path:
+        return
+
+    try:
+        Path(export_path).write_text(
+            json.dumps(history_entries, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        messagebox.showerror("Export fehlgeschlagen", str(exc))
+        return
+
+    set_status("HISTORY EXPORTED", COLORS["green"])
 
 
 def update_key_status():
@@ -289,8 +349,12 @@ def finish_upload(image_path, is_screenshot, image_url, error):
     set_upload_state(False)
 
     if error is None:
-        set_status("UPLOAD COMPLETE  •  LINK READY", COLORS["green"])
         add_to_history(image_url)
+        if auto_copy_var.get():
+            copy_link(image_url, show_status=False)
+            set_status("UPLOAD COMPLETE  •  LINK COPIED", COLORS["green"])
+        else:
+            set_status("UPLOAD COMPLETE  •  LINK READY", COLORS["green"])
         return
 
     set_status("UPLOAD FAILED", COLORS["red"])
@@ -326,9 +390,16 @@ def upload_screenshot():
     if upload_in_progress:
         return
 
-    set_status("CAPTURING ALL SCREENS", COLORS["blue"])
+    selected_monitor = monitor_var.get()
+    monitor_index = monitor_options.get(selected_monitor, -1)
+    delay_seconds = delay_options.get(delay_var.get(), DEFAULT_CAPTURE_DELAY)
+    capture_target = selected_monitor.upper()
+    set_status(f"CAPTURING  •  {capture_target}", COLORS["blue"])
     try:
-        screenshot_path = take_screenshot()
+        screenshot_path = take_screenshot(
+            monitor_index=monitor_index,
+            delay_seconds=delay_seconds,
+        )
     except Exception as exc:
         set_status("CAPTURE FAILED", COLORS["red"])
         messagebox.showerror("Screenshot fehlgeschlagen", str(exc))
@@ -465,6 +536,72 @@ file_button = ctk.CTkButton(
 )
 file_button.pack()
 
+monitor_options = get_monitor_options()
+delay_options = {
+    "Instant": 0,
+    "2 seconds": 2,
+    "5 seconds": 5,
+}
+monitor_var = StringVar(value="All screens")
+delay_var = StringVar(value="Instant")
+auto_copy_var = BooleanVar(value=True)
+
+settings_bar = ctk.CTkFrame(
+    shell,
+    fg_color=COLORS["surface"],
+    border_width=1,
+    border_color=COLORS["border"],
+    corner_radius=14,
+)
+settings_bar.pack(fill="x", pady=(0, 18))
+
+ctk.CTkLabel(
+    settings_bar,
+    text="QUICK SETTINGS",
+    font=ctk.CTkFont(size=11, weight="bold"),
+    text_color=COLORS["muted"],
+).pack(side="left", padx=(16, 12), pady=12)
+
+ctk.CTkOptionMenu(
+    settings_bar,
+    values=list(monitor_options.keys()),
+    variable=monitor_var,
+    width=145,
+    height=32,
+    corner_radius=8,
+    fg_color=COLORS["surface_light"],
+    button_color=COLORS["green_dark"],
+    button_hover_color="#0D8F68",
+    dropdown_fg_color=COLORS["surface_light"],
+    font=ctk.CTkFont(size=11, weight="bold"),
+).pack(side="left", padx=5)
+
+ctk.CTkOptionMenu(
+    settings_bar,
+    values=list(delay_options.keys()),
+    variable=delay_var,
+    width=118,
+    height=32,
+    corner_radius=8,
+    fg_color=COLORS["surface_light"],
+    button_color=COLORS["green_dark"],
+    button_hover_color="#0D8F68",
+    dropdown_fg_color=COLORS["surface_light"],
+    font=ctk.CTkFont(size=11, weight="bold"),
+).pack(side="left", padx=5)
+
+ctk.CTkSwitch(
+    settings_bar,
+    text="AUTO-COPY",
+    variable=auto_copy_var,
+    onvalue=True,
+    offvalue=False,
+    progress_color=COLORS["green"],
+    button_color=COLORS["text"],
+    button_hover_color=COLORS["green"],
+    font=ctk.CTkFont(size=11, weight="bold"),
+).pack(side="left", padx=(12, 16))
+
 status_card = ctk.CTkFrame(
     shell,
     fg_color=COLORS["surface"],
@@ -524,6 +661,20 @@ clear_button = ctk.CTkButton(
     command=clear_history,
 )
 clear_button.pack(side="right")
+
+export_button = ctk.CTkButton(
+    history_header,
+    text="EXPORT",
+    width=72,
+    height=28,
+    corner_radius=8,
+    fg_color="transparent",
+    hover_color="#16364A",
+    text_color=COLORS["blue"],
+    font=ctk.CTkFont(size=10, weight="bold"),
+    command=export_history,
+)
+export_button.pack(side="right", padx=(0, 8))
 
 history_frame = ctk.CTkScrollableFrame(
     shell,

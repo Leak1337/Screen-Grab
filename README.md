@@ -23,7 +23,11 @@ Screen Grab ist eine fokussierte Windows-Desktop-App zum Aufnehmen und direkten 
 - Fortschrittsanzeige und verständliche Fehlermeldungen
 - Klickbarer Upload-Verlauf mit automatischem Kopieren des Links
 - Persistenter Verlauf mit Copy- und Open-Aktionen
-- Globaler App-Shortcut Ctrl + Shift + S
+- App-Shortcut Ctrl + Shift + S
+- Auswahl zwischen allen Bildschirmen und einzelnen Monitoren
+- Aufnahmeverzögerung für vorbereitete Screenshots
+- Optionales automatisches Kopieren des fertigen Links
+- Einzelne Verlaufseinträge löschen oder den kompletten Verlauf als JSON exportieren
 - Neon-inspirierte Dark-UI mit API-Key-Status und Upload-Feedback
 - Temporäre Screenshot-Dateien werden nach dem Upload automatisch entfernt
 - API-Key bleibt außerhalb des Quellcodes
@@ -78,6 +82,8 @@ python screenshot_uploader_gui.py
 ~~~
 
 Danach kann ein Screenshot aufgenommen oder eine lokale Bilddatei ausgewählt werden. Der erzeugte Link erscheint anschließend im Bereich `HISTORY`.
+
+Über QUICK SETTINGS lassen sich Zielmonitor, Aufnahmeverzögerung und Auto-Copy konfigurieren. Der Verlauf bleibt lokal gespeichert und kann jederzeit als JSON exportiert werden.
 
 ## Shortcuts
 

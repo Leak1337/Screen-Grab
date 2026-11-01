@@ -1,0 +1,4 @@
+customtkinter
+mss
+pyperclip
+requests
